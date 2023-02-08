@@ -10,12 +10,7 @@
 
 import 'dart:developer' as developer;
 
-import 'package:intl/intl.dart';
-
 import '../colors/asci_colors.dart';
-
-const _kDateFormat = 'yyyy-MM-dd';
-const _kTimeFormat = 'HH:mm:ss:SSS';
 
 /// Logcat-like logging wrapper that outputs colored logs in the debug console without 3rd packages.
 /// ANSI escape codes are used to color the output.
@@ -139,9 +134,9 @@ class DLog {
     if (prefix.isNotEmpty) {
       prefix += ': ';
     }
-    final now = DateTime.now();
-    final date = DateFormat(_kDateFormat).format(now);
-    final time = DateFormat(_kTimeFormat).format(now);
+    final now = DateTime.now().toString().split(' ');
+    final date = now[0];
+    final time = now[1];
 
     _print(
       level: level,

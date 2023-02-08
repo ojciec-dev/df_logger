@@ -1,6 +1,6 @@
 name: df_logger
 description: Logcat-like Flutter console logger.
-version: 1.1.1
+version: 1.1.2
 homepage: https://github.com/ojciec-dev/df_logger
 
 publish_to: 'https://pub.scrobosoft.space'
@@ -12,7 +12,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  intl: ^0.18.0
 
 dev_dependencies:
   flutter_test:

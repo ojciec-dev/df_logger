@@ -1,3 +1,7 @@
+## 1.1.2
+
+* Removing dependency on intl package
+
 ## 1.1.1
 
 * Changed 1 constraint in pubspec.yaml: intl: ^0.17.0 -> ^0.18.0 
