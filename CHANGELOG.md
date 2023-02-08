@@ -1,3 +1,7 @@
+## 1.1.1
+
+* Changed 1 constraint in pubspec.yaml: intl: ^0.17.0 -> ^0.18.0 
+
 ## 1.1.0
 
 * New parameter to enable/disable logger instance.
