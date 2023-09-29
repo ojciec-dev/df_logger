@@ -47,8 +47,6 @@ void main(List<String> args) {
   for (var color in AsciColor.values) {
     _printMessage(color.colorize('$color'));
   }
-
-  // _printMessage(AsciColor.)
 }
 
 void _printMessage(String message) => print(message);
