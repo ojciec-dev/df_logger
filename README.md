@@ -48,7 +48,7 @@ class MyClass with DLogMixin {
 
 ## Limitaions
 
-* Inability to change logging level globally or disable logger all together,
+* Inability to change logging level globaly or disable logger all toghether,
   unless DLog instance is provided via a eg. service locator (like get_it)
 * Prints messages to debug console unless specified otherwise.
 

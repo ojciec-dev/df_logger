@@ -1,5 +1,7 @@
+/// Copyright (c) 2022 Wojciech Plesiak
+
+import 'package:df_logger/df_logger.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:df_logger/src/logger/dlog.dart';
 
 void main() {
   group(
@@ -9,7 +11,7 @@ void main() {
         'Both tag or group are null',
         () async {
           // do
-          String prefix = DLog.generatePrefix(null, null);
+          String prefix = LogLine.generatePrefix(null, null);
           // test
           expect(prefix, '');
         },
@@ -19,7 +21,7 @@ void main() {
         'Only tag not null',
         () async {
           // do
-          String prefix = DLog.generatePrefix('tag', null);
+          String prefix = LogLine.generatePrefix('tag', null);
           // test
           expect(prefix, 'tag');
         },
@@ -29,7 +31,7 @@ void main() {
         'Only group not null',
         () async {
           // do
-          String prefix = DLog.generatePrefix(null, 'group');
+          String prefix = LogLine.generatePrefix(null, 'group');
           // test
           expect(prefix, '<group>');
         },
@@ -39,48 +41,9 @@ void main() {
         'Both tag and group not null',
         () async {
           // do
-          String prefix = DLog.generatePrefix('tag', 'group');
+          String prefix = LogLine.generatePrefix('tag', 'group');
           // test
           expect(prefix, 'tag<group>');
-        },
-      );
-    },
-  );
-
-  group(
-    'Tests for apply method',
-    () {
-      test(
-        'Changing enabled and minLoggingLevel properties',
-        () async {
-          // when
-          final log = DLog('tag');
-          expect(log.enabled, true);
-          expect(log.minLoggingLevel, Level.verbose);
-          // do
-          log.apply(
-            minLoggingLevel: Level.warning,
-            enabled: false,
-          );
-          // test
-          expect(log.enabled, false);
-          expect(log.minLoggingLevel, Level.warning);
-        },
-      );
-
-      test(
-        'Changing enabled and minLoggingLevel properties',
-        () async {
-          // when
-          final log = DLog('tag');
-          // do
-          bool customLoggerTriggered = false;
-          log.apply(
-            logger: (msg) => customLoggerTriggered = true,
-          );
-          // test
-          log.debug('test message');
-          expect(customLoggerTriggered, true);
         },
       );
     },
@@ -96,10 +59,12 @@ void main() {
           bool customLoggerTriggered = false;
           final log = DLog(
             'tag',
-            minLogLevel: Level.debug,
-            logger: (msg) {
-              customLoggerTriggered = true;
-            },
+            config: DLogConfig.defaultConfig.copyWith(
+              minLoggingLevel: Level.debug,
+              logger: (_, __) {
+                customLoggerTriggered = true;
+              },
+            ),
           );
           // test
           log.verbose('below min logging level');
@@ -114,9 +79,11 @@ void main() {
           bool customLoggerTriggered = false;
           final log = DLog(
             'tag',
-            logger: (msg) {
-              customLoggerTriggered = true;
-            },
+            config: DLogConfig.defaultConfig.copyWith(
+              logger: (_, __) {
+                customLoggerTriggered = true;
+              },
+            ),
           );
           // test
           log.debug('at min logging level');

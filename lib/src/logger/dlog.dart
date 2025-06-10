@@ -1,21 +1,15 @@
+/// Copyright (c) 2025 Wojciech Plesiak
 /*
- * Created on Tue Oct 11 2022
- *
- * Copyright (c) 2022 Wojciech Plesiak
- *
- * [[ PACKAGE - DF_LOGGER ]]
- *
- * dart.developer logger wrapper that format log messages similar to Android's logcat.
+ * dart.developer logger wrapper that format log messages similarly to Android's logcat.
  */
 
-import 'dart:developer' as developer;
-
-import '../colors/asci_colors.dart';
+import '../core/core.dart';
+import 'dlog_printer.dart';
 
 /// Logcat-like logging wrapper that outputs colored logs in the debug console without 3rd packages.
 /// ANSI escape codes are used to color the output.
 ///
-/// Provides DEBUG, INFO, WARNING and ERROR log level messages with date, time, log level and tags, eg
+/// Provides TRACE, DEBUG, INFO, NOTICE, WARNING, ALERT and ERROR log level messages with date, time, log level and tags, eg
 /// ```
 /// [log] 2022-11-14 22:48:39:893 D/FileTag: This is a debug message
 /// ```
@@ -35,10 +29,12 @@ import '../colors/asci_colors.dart';
 /// ```
 /// Override enabled, minLoggingLevel or logging method if needed
 /// ```dart
-/// final _log = DLog('FileTag').apply(
-///   enabled: false,
-///   minLoggingLevel: Level.warning,
-///   logger: (msg) {},
+/// final _log = DLog(
+///   'FileTag'
+//    config: DLogConfig.defaultConfig.copyWith(
+//      logger: (coloredMessage, logLine) {}
+//      minLoggingLevel: level,
+//    ),
 /// );
 /// ```
 ///
@@ -74,186 +70,111 @@ class DLog {
   /// Optional additional tag, useful for grouping logs from the same feature.
   final String? group;
 
-  /// Minimal loggging level, log attempts below this level will be ignored.
-  Level minLoggingLevel;
+  /// Configuration for the logger.
+  final DLogConfig config;
 
-  /// Optional logger method to be used instead of default [dart:developer.log(..)] method.
-  Function(String)? logger;
+  final DLogPrinter _printer;
 
-  /// Whether logging is enabled. Useful when we want to keep logs in a class but enable them only for debugging.
-  bool enabled = true;
+  DLog(
+    this.tag, {
+    this.group,
+    this.config = DLogConfig.defaultConfig,
+  }) : _printer = DLogPrinter(config, tag, group);
 
-  final String _msgPrefix;
+  /// TRACE
 
-  DLog(this.tag, {this.group, Level? minLogLevel, this.logger})
-      : _msgPrefix = generatePrefix(tag, group),
-        minLoggingLevel = minLogLevel ?? Level.verbose;
+  static void t(String tag, String msg, {String? group, Fasade? fasade}) => DLog(tag, group: group).trace(msg, fasade: fasade);
+  void trace(String msg, {Fasade? fasade}) => _log(Level.trace, msg, tag, fasade);
 
   /// VERBOSE
 
-  static void v(String tag, String msg, {String? group}) => DLog(tag, group: group).verbose(msg);
-  void verbose(String msg) => _log(Level.verbose, msg);
+  static void v(String tag, String msg, {String? group, Fasade? fasade}) => DLog(tag, group: group).verbose(msg, fasade: fasade);
+  void verbose(String msg, {Fasade? fasade}) => _log(Level.verbose, msg, tag, fasade);
 
   /// DEBUG
 
-  static void d(String tag, String msg, {String? group}) => DLog(tag, group: group).debug(msg);
-  void debug(String msg) => _log(Level.debug, msg);
+  static void d(String tag, String msg, {String? group, Fasade? fasade}) => DLog(tag, group: group).debug(msg, fasade: fasade);
+  void debug(String msg, {Fasade? fasade}) => _log(Level.debug, msg, tag, fasade);
 
   /// INFO
 
-  static void i(String tag, String msg, {String? group}) => DLog(tag, group: group).info(msg);
-  void info(String msg) => _log(Level.info, msg);
+  static void i(String tag, String msg, {String? group, Fasade? fasade}) => DLog(tag, group: group).info(msg, fasade: fasade);
+  void info(String msg, {Fasade? fasade}) => _log(Level.info, msg, tag, fasade);
+
+  /// NOTICE
+
+  static void n(String tag, String msg, {String? group, Fasade? fasade}) => DLog(tag, group: group).notice(msg, fasade: fasade);
+  void notice(String msg, {Fasade? fasade}) => _log(Level.notice, msg, tag, fasade);
 
   /// WARNING
 
-  static void w(String tag, String msg, {String? group, Exception? ex}) => DLog(tag, group: group).warning(msg, ex);
-  void warning(String msg, [Exception? ex]) {
-    _log(Level.warning, msg);
-    if (ex != null) {
-      _log(Level.warning, ex.toString());
-    }
+  static void w(String tag, String msg, {dynamic error, Fasade? fasade, String? group, StackTrace? stackTrace}) =>
+      DLog(tag, group: group).warning(msg, fasade: fasade, error: error, stackTrace: stackTrace);
+  void warning(String msg, {Fasade? fasade, dynamic error, StackTrace? stackTrace}) {
+    _log(Level.warning, msg, tag, fasade, error, stackTrace);
+  }
+
+  /// ALERT
+
+  static void a(String tag, String msg, {dynamic error, Fasade? fasade, String? group, StackTrace? stackTrace}) =>
+      DLog(tag, group: group).alert(msg, fasade: fasade, error: error, stackTrace: stackTrace);
+  void alert(String msg, {dynamic error, Fasade? fasade, StackTrace? stackTrace}) {
+    _log(Level.alert, msg, tag, fasade, error, stackTrace);
   }
 
   /// ERROR
 
-  static void e(String tag, String msg, {String? group, Exception? ex}) => DLog(tag, group: group).error(msg, ex);
-  void error(String msg, [Exception? ex]) {
-    _log(Level.error, msg);
-    if (ex != null) {
-      _log(Level.error, ex.toString());
-    }
+  static void e(String tag, String msg, {dynamic error, Fasade? fasade, String? group, StackTrace? stackTrace}) =>
+      DLog(tag, group: group).error(msg, fasade: fasade, error: error, stackTrace: stackTrace);
+  void error(String msg, {dynamic error, Fasade? fasade, StackTrace? stackTrace}) {
+    _log(Level.error, msg, tag, fasade, error, stackTrace);
   }
 
-  // #region internal
+  /// CUSTOM
 
-  void _log(Level level, String msg) {
-    /// do not print below importance level
-    if (!enabled || level.importance < minLoggingLevel.importance) return;
-
-    String prefix = _msgPrefix;
-    if (prefix.isNotEmpty) {
-      prefix += ': ';
-    }
-    final now = DateTime.now().toString().split(' ');
-    final date = now[0];
-    final time = now[1];
-
-    _print(
-      level: level,
-      msg: msg,
-      date: date,
-      time: time,
-      prefix: prefix,
-    );
+  static void c(String tag, String msg, {String? group, Fasade? fasade, dynamic error, StackTrace? stackTrace}) =>
+      DLog(tag, group: group).custom(msg, fasade: fasade, error: error, stackTrace: stackTrace);
+  void custom(String msg, {Fasade? fasade, dynamic error, StackTrace? stackTrace}) {
+    _log(Level.custom, msg, tag, fasade, error, stackTrace);
   }
 
-  /// This is what prints the log message. Currently it uses [dart:developer] log method.
-  void _print({
-    required Level level,
-    required String msg,
-    required String date,
-    required String time,
-    required String prefix,
-  }) {
-    final message = level.color.colorize('$date $time ${level.letter}/$prefix$msg');
-    if (logger != null) {
-      logger?.call(message);
-    } else {
-      developer.log(message, time: DateTime.now());
-    }
-  }
+  void _log(
+    Level level,
+    String msg, [
+    String? tag,
+    Fasade? fasade,
+    dynamic error,
+    StackTrace? stackTrace,
+  ]) =>
+      _printer.print(LogLine(
+        level,
+        msg,
+        tag: tag,
+        fasade: fasade,
+        error: error,
+        stackTrace: stackTrace,
+        logFormat: config.logFormat,
+      ));
 
-  // #endregion
+  static void printSampleLogs() {
+    DLog.t('DLog', 'This is a trace message');
+    DLog.v('DLog', 'This is a verbose message');
+    DLog.d('DLog', 'This is a debug message');
+    DLog.i('DLog', 'This is an info message');
+    DLog.n('DLog', 'This is a notice message');
+    DLog.w('DLog', 'This is a warning message');
+    DLog.a('DLog', 'This is an alert message');
+    DLog.e('DLog', 'This is an error message');
+    DLog.c('DLog', 'This is a custom message');
 
-  /// Change configuration after DLog instance has been created.
-  DLog apply({bool? enabled, Level? minLoggingLevel, Function(String)? logger}) {
-    if (enabled != null) this.enabled = enabled;
-    if (minLoggingLevel != null) this.minLoggingLevel = minLoggingLevel;
-    if (logger != null) this.logger = logger;
-
-    return this;
-  }
-
-  /// Generates log message prefix.
-  ///
-  /// Returns one of:
-  /// * `TAG<GROUP>`  - when both [tag] and [group] are not null
-  /// * `TAG`         - when [tag] is not null but [group] is null
-  /// * `<GROUP>`     - when [tag] is null but [group] is not
-  /// * empty string  - when both [tag] and [group] are null
-  static String generatePrefix(String? tag, String? group) {
-    String postfix = '';
-    if (group != null) {
-      postfix = '<$group>';
-    }
-
-    String tagString = postfix;
-    if (tag != null) {
-      tagString = '$tag$tagString';
-    }
-
-    return tagString;
-  }
-}
-
-/// Log levels
-enum Level {
-  verbose,
-  debug,
-  info,
-  warning,
-  error,
-}
-
-/// Dart enums are very basic and do not allow holding data.
-/// Adding an extension function like this is a well working workaround.
-extension _LevelExt on Level {
-  String get letter {
-    switch (this) {
-      case Level.debug:
-        return 'D';
-      case Level.info:
-        return 'I';
-      case Level.warning:
-        return 'W';
-      case Level.error:
-        return 'E';
-      case Level.verbose:
-      default:
-        return 'V';
-    }
-  }
-
-  AsciColor get color {
-    switch (this) {
-      case Level.debug:
-        return AsciColor.green;
-      case Level.info:
-        return AsciColor.blue;
-      case Level.warning:
-        return AsciColor.yellow;
-      case Level.error:
-        return AsciColor.red;
-      case Level.verbose:
-      default:
-        return AsciColor.white;
-    }
-  }
-
-  /// higher number = higher importance
-  int get importance {
-    switch (this) {
-      case Level.debug:
-        return 1;
-      case Level.info:
-        return 2;
-      case Level.warning:
-        return 3;
-      case Level.error:
-        return 4;
-      case Level.verbose:
-      default:
-        return 0;
-    }
+    DLog.t('DLog', 'This is a trace message with swapped fasade', fasade: Fasade.swapped());
+    DLog.v('DLog', 'This is a verbose message with swapped fasade', fasade: Fasade.swapped());
+    DLog.d('DLog', 'This is a debug message with swapped fasade', fasade: Fasade.swapped());
+    DLog.i('DLog', 'This is an info message with swapped fasade', fasade: Fasade.swapped());
+    DLog.n('DLog', 'This is a notice message with swapped fasade', fasade: Fasade.swapped());
+    DLog.w('DLog', 'This is a warning message with swapped fasade', fasade: Fasade.swapped());
+    DLog.a('DLog', 'This is an alert message with swapped fasade', fasade: Fasade.swapped());
+    DLog.e('DLog', 'This is an error message with swapped fasade', fasade: Fasade.swapped());
+    DLog.c('DLog', 'This is a custom message with swapped fasade', fasade: Fasade.swapped());
   }
 }

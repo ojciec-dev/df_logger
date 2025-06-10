@@ -1,10 +1,6 @@
-/*
- * Created on Tue Oct 11 2022
- *
- * Copyright (c) 2022 Wojciech Plesiak
- *
- * [[ PACKAGE - DF_LOGGER ]]
- */
+/// Copyright (c) 2025 Wojciech Plesiak
+
+import 'dlog_color.dart';
 
 enum AsciColor {
   reset,
@@ -24,6 +20,7 @@ enum AsciColor {
   brightMegenta,
   brightCyan,
   brightWhite,
+  rgb,
 }
 
 extension AsciColorExt on AsciColor {
@@ -63,14 +60,37 @@ extension AsciColorExt on AsciColor {
         return 96;
       case AsciColor.brightWhite:
         return 97;
+      case AsciColor.rgb:
+        return 30;
     }
   }
 
   String get color {
-    return "\x1B[${_code}m";
+    return '\x1B[${_code}m';
   }
 
   String colorize(String msg) {
-    return "$color$msg${AsciColor.reset.color}";
+    return '$color$msg${AsciColor.reset.color}';
   }
+
+  /// Colorize the message with RGB color.
+  ///
+  /// Example:
+  /// print('\x1B[38;2;255;165;0m Orange foreground \x1B[0m');
+  /// print('\x1B[48;2;255;165;0m Orange background \x1B[0m');
+  /// print('\x1B[38;2;255;165;0m\x1B[48;2;173;216;230m Orange text on light blue background \x1B[0m');
+  String rgbColorize(String msg, [DLogColor? fbColor, DLogColor? bgColor]) {
+    if (fbColor == null && bgColor == null) {
+      return colorize(msg);
+    }
+
+    var fg = fbColor != null ? '\x1B[38;2;${fbColor.red};${fbColor.green};${fbColor.blue}m' : '';
+    var bg = bgColor != null ? '\x1B[48;2;${bgColor.red};${bgColor.green};${bgColor.blue}m' : '';
+
+    return '$bg$fg$msg\x1B[0m';
+  }
+}
+
+extension E on double {
+  int get channel => (this * 255.0).round();
 }
