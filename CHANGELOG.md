@@ -1,3 +1,23 @@
+# /// Copyright (c) 2022 Wojciech Plesiak
+
+## 2.0.2
+
+* Introduced OnScreenDlog widget.
+
+## 2.0.1
+
+* Fix DLog.c mapping to proper log level.
+* Adjust log debug, error and custom log colors.
+* Ability to disable logging to file after it was enabled. 
+
+## 2.0.0
+
+* BREAKING CHANGES: Removed: `minLoggingLevel`, `logger` and `enabled` DLog arguments. Introduced `config` argument instead. 
+* BREAKING CHANGES: Changes signatures of `warning` and `error` logging methods.
+* Introduced `DLogConfig` to allow for log format and colors customizations.
+* Support for RGB log colors (foreground and background).
+* Introduced buffers.
+
 ## 1.1.2
 
 * Removing dependency on intl package

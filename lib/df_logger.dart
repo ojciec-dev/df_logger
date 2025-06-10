@@ -1,4 +1,4 @@
-library df_logger;
+library;
 
 /*
  * Created on Mon Nov 14 2022
@@ -11,5 +11,7 @@ library df_logger;
  * See [DLog] documentation for more information.
  */
 
-export 'src/logger/dlog.dart';
-export 'src/classes/dloggable.dart';
+export 'src/colors/colors.dart';
+export 'src/core/core.dart';
+export 'src/logger/logger.dart';
+export 'src/utils/utils.dart';

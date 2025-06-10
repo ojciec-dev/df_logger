@@ -1,4 +1,9 @@
 include: package:flutter_lints/flutter.yaml
 
+linter:
+  rules:
+    prefer_single_quotes: true
+    dangling_library_doc_comments: false
+
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
